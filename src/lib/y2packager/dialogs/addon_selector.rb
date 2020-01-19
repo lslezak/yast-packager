@@ -14,6 +14,7 @@ require "yast"
 require "erb"
 require "ui/installation_dialog"
 require "y2packager/resolvable"
+require "ui/text_helpers"
 
 Yast.import "AddOnProduct"
 Yast.import "Mode"
@@ -120,6 +121,71 @@ module Y2Packager
         products.map { |p| Item(Id(p.dir), p.summary || p.name, defaults.include?(p)) }
       end
 
+      # Build the items to be used by the addons selector
+      #
+      # @see #addons_box
+      #
+      # @return [Array<Yast::Term>] items for the addons selector.
+      def addons_items
+        products.map do |p|
+          Item(
+            Id(p.dir),
+            p.summary || p.name,
+            product_description(p),
+          )
+        end
+      end
+
+      # Build the map of addons states
+      #
+      # @see #show_addons
+      #
+      # @return [Hash<String => Integer>]
+      def addons_states
+        @addons.reduce({}) do |states, addon|
+          states[addon_widget_id(addon)] =
+            case addon.status
+            when :selected, :registered
+              MOD_INSTALL
+            when :auto_selected
+              MOD_AUTOINSTALL
+            else
+              MOD_DONT_INSTALL
+            end
+
+          states
+        end
+      end
+
+
+      MOD_DONT_INSTALL = 0
+      private_constant :MOD_DONT_INSTALL
+      MOD_INSTALL      = 1
+      private_constant :MOD_INSTALL
+      MOD_AUTOINSTALL  = 2
+      private_constant :MOD_AUTOINSTALL
+
+      def custom_states
+        [
+          # icon, NCurses indicator, next status (optional)
+          ["checkbox-off",           "[ ]", MOD_INSTALL     ],
+          ["checkbox-on",            "[x]", MOD_DONT_INSTALL],
+          ["checkbox-auto-selected", "[a]", MOD_DONT_INSTALL]
+        ]
+      end
+
+      # Create the UI box with addon check boxes
+      #
+      # @return [Yast::Term] the main UI dialog term
+      def addons_box
+        # FIXME: the items will be added via UI.ChangeWidget; see #show_addons and
+        # AddonSelectionRegistratioDialog#run
+        content = CustomStatusItemSelector(Id(:items), Opt(:notify), custom_states, addons_items)
+
+        content
+      end
+
+
       # Dialog content
       #
       # @see ::UI::Dialog
@@ -127,15 +193,7 @@ module Y2Packager
         VBox(
           # TRANSLATORS: Product selection label (above a multi-selection box)
           Left(Heading(_("Available Extensions and Modules"))),
-          VWeight(60, MinHeight(8,
-            MultiSelectionBox(
-              Id(:addon_repos),
-              Opt(:notify, :immediate),
-              "",
-              selection_content
-            ))),
-          VSpacing(0.4),
-          details_widget
+          addons_box
         )
       end
 
