@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Sun Jan 19 23:11:48 UTC 2020 - David Diaz <dgonzalez@suse.com>
+
+- WUP
+- 4.2.45
+
+-------------------------------------------------------------------
 Thu Jan 10 15:03:31 UTC 2020 - schubi@suse.de
 
 - Do not refresh package installation overview if the medium has
