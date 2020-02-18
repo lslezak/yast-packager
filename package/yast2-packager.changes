@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Feb 18 15:47:45 UTC 2020 - David Diaz <dgonzalez@suse.com>
+
+- Avoid crashing when changing a language and keyboard layout
+  (bsc#1161842).
+- 4.2.46
+
+-------------------------------------------------------------------
 Sun Jan 19 23:11:48 UTC 2020 - David Diaz <dgonzalez@suse.com>
 
 - WUP
