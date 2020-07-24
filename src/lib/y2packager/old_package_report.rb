@@ -13,38 +13,49 @@
 require "yast"
 
 Yast.import "Report"
+Yast.import "HTML"
 
 module Y2Packager
   # This class checks whether some old packages are selected
   # and displays a warning to the user.
-  class OldPackages
+  class OldPackageReport
     include Yast::Logger
     include Yast::I18n
 
-    attr_reader :checker
+    attr_reader :old_packages
 
-    def initialize(checker)
+    def initialize(old_packages)
       textdomain "packager"
-      @checker = checker
+      @old_packages = old_packages
     end
 
-    def check
-      old_packages = checker.old_packages
+    def report
+      report_packages = old_packages.select(&:selected_old)
+      if report_packages.empty?
+        log.info "No old package selected"
+        return
+      end
 
-      return if old_packages.empty?
+      log.warn("Detected old packages in the package selection: #{report_packages.inspect}")
 
-      log.warn("Detected old packages in the package selection: #{old_packages.inspect}")
+      grouped_packages = report_packages.group_by(&:message)
 
-      pkg_summary = old_packages.reduce("") do |memo, pkg|
-        memo + format(_("%{name}-%{version} (minimal recommended version: %{minimal_version})\n"),
-          name: pkg.name, version: pkg.version, minimal_version: checker.packages[pkg.name])
+      pkg_summary = grouped_packages.each_with_object("") do |(msg, pkgs), str|
+        package_names = pkgs.map do |pkg|
+          old = pkg.selected_old
+          "#{old.name}-#{old.version}-#{old.arch}"
+        end
+
+        str << "<p>"
+        str << Yast::HTML.List(package_names)
+        str << msg
+        str << "</p><br>"
       end
 
       message = format(_("The installer detected old package versions selected " \
         "for installation: \n\n%{list}"), list: pkg_summary)
-      message += "\n\n" + _("It is recommended to install newer packages.")
 
-      Yast::Report.Warning(message)
+      Yast::Report.LongWarning(message)
     end
   end
 end

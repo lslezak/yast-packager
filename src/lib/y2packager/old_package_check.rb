@@ -11,27 +11,18 @@
 # ------------------------------------------------------------------------------
 
 require "yast"
-require "y2packager/resolvable"
 
-Yast.import "Pkg"
+require "y2packager/old_package_report"
+require "y2packager/old_package"
 
 module Y2Packager
-  # This class checks whether some old package is selected to install
-  class VersionCheck
-    attr_reader :packages
-
-    def initialize(packages)
-      @packages = packages
-    end
-
-    def old_packages
-      packages.inject([]) do |memo, (name, version)|
-        selected_packages = Resolvable.find(kind: :package, status: :selected, name: name)
-        # 1 = the selected is newer, the opposite is older or the same
-        memo.concat(selected_packages.select do |s|
-          Yast::Pkg.CompareVersions(s.version, version) != 1
-        end)
-      end
+  # This class checks whether some old packages are selected
+  # and displays a warning to the user.
+  class OldPackageCheck
+    def self.run
+      old_packages = OldPackage.read
+      reporter = OldPackageReport.new(old_packages)
+      reporter.report
     end
   end
 end
